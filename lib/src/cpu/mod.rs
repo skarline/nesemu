@@ -5,7 +5,7 @@ const INITIAL_STATUS_FLAGS: StatusFlags = StatusFlags::from_bits_truncate(0b1001
 
 bitflags! {
   pub struct StatusFlags: u8 {
-      const CARRY = 0b000;
+      const CARRY = 1 << 0;
       const ZERO = 1 << 1;
       const INTERRUPT_DISABLE = 1 << 2;
       const DECIMAL = 1 << 3;
@@ -27,7 +27,7 @@ struct Registers {
 pub struct CPU {
     registers: Registers,
     status: StatusFlags,
-    fetched: u8,
+    operand_address: u16,
     memory: [u8; 0xFFFF],
 }
 
@@ -42,7 +42,7 @@ impl CPU {
                 pc: 0,
             },
             status: INITIAL_STATUS_FLAGS,
-            fetched: 0,
+            operand_address: 0,
             memory: [0; 0xFFFF],
         }
     }
@@ -65,12 +65,11 @@ impl CPU {
 
     pub fn run(&mut self) {
         loop {
-            let instruction = self.fetch_instruction().expect("Invalid opcode");
+            let instruction = self.fetch_instruction();
+            self.registers.pc += 1;
 
             (instruction.mode)(self);
             (instruction.operate)(self);
-
-            self.registers.pc += instruction.cycles as u16;
 
             if self.status.contains(StatusFlags::INTERRUPT_DISABLE) {
                 break;
@@ -104,55 +103,66 @@ impl CPU {
     fn implied(&mut self) {}
 
     fn immediate(&mut self) {
-        self.fetched = self.read(self.registers.pc + 1);
+        self.operand_address = self.registers.pc;
+        self.registers.pc += 1;
+    }
+
+    fn absolute(&mut self) {
+        self.operand_address = self.read_word(self.registers.pc);
+        self.registers.pc += 2;
+    }
+
+    fn absolute_x(&mut self) {
+        self.operand_address = self
+            .read_word(self.registers.pc)
+            .wrapping_add(self.registers.x as u16);
+        self.registers.pc += 2;
+    }
+
+    fn absolute_y(&mut self) {
+        self.operand_address = self
+            .read_word(self.registers.pc)
+            .wrapping_add(self.registers.y as u16);
+        self.registers.pc += 2;
+    }
+
+    fn zero_page(&mut self) {
+        self.operand_address = self.read_word(self.registers.pc);
+        self.registers.pc += 1;
+    }
+
+    fn zero_page_x(&mut self) {
+        self.operand_address = self.read(self.registers.pc).wrapping_add(self.registers.x) as u16;
+        self.registers.pc += 1;
+    }
+
+    fn zero_page_y(&mut self) {
+        self.operand_address = self.read(self.registers.pc).wrapping_add(self.registers.y) as u16;
+        self.registers.pc += 1;
+    }
+
+    fn indirect(&mut self) {
+        self.operand_address = self.read_word(self.read_word(self.registers.pc));
+    }
+
+    fn indirect_x(&mut self) {
+        let ptr = self.read(self.registers.pc).wrapping_add(self.registers.x) as u16;
+        self.operand_address = self.read_word(ptr);
+        self.registers.pc += 1;
+    }
+
+    fn indirect_y(&mut self) {
+        let ptr = self.read_word(self.registers.pc);
+        self.operand_address = self.read_word(ptr).wrapping_add(self.registers.y as u16);
+        self.registers.pc += 1;
+    }
+
+    fn fetch_operand(&self) -> u8 {
+        self.read(self.operand_address)
     }
 }
 
 mod opcodes;
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_lda() {
-        let mut cpu = CPU::new();
-        cpu.load_and_run(vec![0xA9, 0x01, 0x00]);
-        assert_eq!(cpu.registers.a, 0x01);
-    }
-
-    #[test]
-    fn test_lda_zero_flag() {
-        let mut cpu = CPU::new();
-        cpu.load_and_run(vec![0xA9, 0x00, 0x00]);
-        assert!(cpu.status.contains(StatusFlags::ZERO));
-    }
-
-    #[test]
-    fn test_lda_negative_flag() {
-        let mut cpu = CPU::new();
-        cpu.load_and_run(vec![0xA9, 0x80, 0x00]);
-        assert!(cpu.status.contains(StatusFlags::NEGATIVE));
-    }
-
-    #[test]
-    fn test_tax() {
-        let mut cpu = CPU::new();
-        cpu.load_and_run(vec![0xA9, 0x01, 0xAA, 0x00]);
-        assert_eq!(cpu.registers.x, 0x01);
-    }
-
-    #[test]
-    fn test_tax_zero_flag() {
-        let mut cpu = CPU::new();
-        cpu.load_and_run(vec![0xA9, 0x00, 0xAA, 0x00]);
-        assert!(cpu.status.contains(StatusFlags::ZERO));
-    }
-
-    #[test]
-    fn test_tax_negative_flag() {
-        let mut cpu = CPU::new();
-        cpu.load_and_run(vec![0xA9, 0x80, 0xAA, 0x00]);
-        assert!(cpu.status.contains(StatusFlags::NEGATIVE));
-    }
-}
+mod tests;
