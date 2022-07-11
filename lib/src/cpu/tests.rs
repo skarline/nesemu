@@ -118,14 +118,24 @@ fn test_adc() {
 }
 
 #[test]
+fn test_adc_with_carry() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0x38, // SEC
+        0xA9, 0x40, // LDA #$40
+        0x69, 0x0F, // ADC #$0F
+    ]);
+    assert_eq!(cpu.registers.a, 0x50);
+}
+
+#[test]
 fn test_adc_with_overflow() {
     let mut cpu = CPU::new();
-    cpu.status.remove(StatusFlags::CARRY);
     cpu.load_and_run(vec![
         0xA9, 0xFF, // LDA #$FF
-        0x69, 0x03, // ADC #$03
+        0x69, 0x01, // ADC #$01
     ]);
-    assert!(cpu.status.contains(StatusFlags::CARRY));
+    assert!(cpu.status.contains(StatusFlags::OVERFLOW));
 }
 
 #[test]

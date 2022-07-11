@@ -27,7 +27,7 @@ struct Registers {
 pub struct CPU {
     registers: Registers,
     status: StatusFlags,
-    operand_address: u16,
+    addressed: u16,
     memory: [u8; 0xFFFF],
 }
 
@@ -42,7 +42,7 @@ impl CPU {
                 pc: 0,
             },
             status: INITIAL_STATUS_FLAGS,
-            operand_address: 0,
+            addressed: 0,
             memory: [0; 0xFFFF],
         }
     }
@@ -99,66 +99,65 @@ impl CPU {
         LittleEndian::write_u16(&mut self.memory[address as usize..], value);
     }
 
-    // Address mode functions
     fn implied(&mut self) {}
 
     fn immediate(&mut self) {
-        self.operand_address = self.registers.pc;
+        self.addressed = self.registers.pc;
         self.registers.pc += 1;
     }
 
     fn absolute(&mut self) {
-        self.operand_address = self.read_word(self.registers.pc);
+        self.addressed = self.read_word(self.registers.pc);
         self.registers.pc += 2;
     }
 
     fn absolute_x(&mut self) {
-        self.operand_address = self
+        self.addressed = self
             .read_word(self.registers.pc)
             .wrapping_add(self.registers.x as u16);
         self.registers.pc += 2;
     }
 
     fn absolute_y(&mut self) {
-        self.operand_address = self
+        self.addressed = self
             .read_word(self.registers.pc)
             .wrapping_add(self.registers.y as u16);
         self.registers.pc += 2;
     }
 
     fn zero_page(&mut self) {
-        self.operand_address = self.read_word(self.registers.pc);
+        self.addressed = self.read_word(self.registers.pc);
         self.registers.pc += 1;
     }
 
     fn zero_page_x(&mut self) {
-        self.operand_address = self.read(self.registers.pc).wrapping_add(self.registers.x) as u16;
+        self.addressed = self.read(self.registers.pc).wrapping_add(self.registers.x) as u16;
         self.registers.pc += 1;
     }
 
     fn zero_page_y(&mut self) {
-        self.operand_address = self.read(self.registers.pc).wrapping_add(self.registers.y) as u16;
+        self.addressed = self.read(self.registers.pc).wrapping_add(self.registers.y) as u16;
         self.registers.pc += 1;
     }
 
     fn indirect(&mut self) {
-        self.operand_address = self.read_word(self.read_word(self.registers.pc));
+        self.addressed = self.read_word(self.read_word(self.registers.pc));
     }
 
     fn indirect_x(&mut self) {
         let ptr = self.read(self.registers.pc).wrapping_add(self.registers.x) as u16;
-        self.operand_address = self.read_word(ptr);
+        self.addressed = self.read_word(ptr);
         self.registers.pc += 1;
     }
 
     fn indirect_y(&mut self) {
         let ptr = self.read_word(self.registers.pc);
-        self.operand_address = self.read_word(ptr).wrapping_add(self.registers.y as u16);
+        self.addressed = self.read_word(ptr).wrapping_add(self.registers.y as u16);
         self.registers.pc += 1;
     }
 
-    fn fetch_operand(&self) -> u8 {
-        self.read(self.operand_address)
+    fn mode(&self) -> u8 {
+        self.read(self.addressed)
     }
 }
 

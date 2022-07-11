@@ -34,6 +34,9 @@ impl CPU {
             0x61 => Instruction::new(6, CPU::adc, CPU::indirect_x),
             0x71 => Instruction::new(5, CPU::adc, CPU::indirect_y),
 
+            // Clear Carry Flag
+            0x18 => Instruction::new(2, CPU::clc, CPU::implied),
+
             // Jump
             0x4C => Instruction::new(3, CPU::jmp, CPU::absolute),
             0x6C => Instruction::new(5, CPU::jmp, CPU::indirect),
@@ -62,6 +65,9 @@ impl CPU {
             0xAC => Instruction::new(4, CPU::ldy, CPU::absolute),
             0xBC => Instruction::new(4, CPU::ldy, CPU::absolute_x),
 
+            // Set Carry Flag
+            0x38 => Instruction::new(2, CPU::sec, CPU::implied),
+
             // Transfer accumulator to X
             0xAA => Instruction::new(2, CPU::tax, CPU::implied),
 
@@ -74,19 +80,32 @@ impl CPU {
     }
 
     fn adc(&mut self) {
-        let (result, carry) = u8::overflowing_add(self.registers.a, self.fetch_operand());
+        let a = self.registers.a as u16;
+        let m = self.mode() as u16;
+        let c = self.status.contains(StatusFlags::CARRY) as u16;
 
-        self.registers.a = result;
+        let result = a + m + c;
+        let value = result as u8;
+        let overflow = (a ^ m) & (a ^ result) & 0x80 != 0;
 
-        self.update_carry_flag(carry);
+        self.registers.a = value;
+
+        self.update_carry_flag(result > 0xFF);
+        self.update_zero_flag(value);
+        self.update_negative_flag(value);
+        self.update_overflow_flag(overflow);
+    }
+
+    fn clc(&mut self) {
+        self.status.remove(StatusFlags::CARRY);
     }
 
     fn jmp(&mut self) {
-        self.registers.pc = self.operand_address;
+        self.registers.pc = self.addressed;
     }
 
     fn lda(&mut self) {
-        let value = self.fetch_operand();
+        let value = self.mode();
 
         self.registers.a = value;
 
@@ -95,7 +114,7 @@ impl CPU {
     }
 
     fn ldx(&mut self) {
-        let value = self.fetch_operand();
+        let value = self.mode();
 
         self.registers.x = value;
 
@@ -104,12 +123,16 @@ impl CPU {
     }
 
     fn ldy(&mut self) {
-        let value = self.fetch_operand();
+        let value = self.mode();
 
         self.registers.y = value;
 
         self.update_zero_flag(value);
         self.update_negative_flag(value);
+    }
+
+    fn sec(&mut self) {
+        self.status.insert(StatusFlags::CARRY);
     }
 
     fn tax(&mut self) {
@@ -134,5 +157,10 @@ impl CPU {
     #[inline]
     fn update_negative_flag(&mut self, value: u8) {
         self.status.set(StatusFlags::NEGATIVE, value & 0x80 != 0);
+    }
+
+    #[inline]
+    fn update_overflow_flag(&mut self, value: bool) {
+        self.status.set(StatusFlags::OVERFLOW, value);
     }
 }
