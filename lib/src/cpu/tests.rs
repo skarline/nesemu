@@ -132,10 +132,19 @@ fn test_adc_with_carry() {
 fn test_adc_with_overflow() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![
-        0xA9, 0xFF, // LDA #$FF
-        0x69, 0x01, // ADC #$01
+        0xA9, 0x40, // LDA #$40
+        0x69, 0x40, // ADC #$40
     ]);
     assert!(cpu.status.contains(StatusFlags::OVERFLOW));
+}
+
+#[test]
+fn test_clc() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0x18, // CLC
+    ]);
+    assert!(!cpu.status.contains(StatusFlags::CARRY));
 }
 
 #[test]
@@ -157,21 +166,61 @@ fn test_lda() {
 }
 
 #[test]
-fn test_lda_zero_flag() {
+fn test_ldx() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![
-        0xA9, 0x00, // LDA #$00
+        0xA2, 0x01, // LDX #$01
     ]);
-    assert!(cpu.status.contains(StatusFlags::ZERO));
+    assert_eq!(cpu.registers.x, 0x01);
 }
 
 #[test]
-fn test_lda_negative_flag() {
+fn test_ldy() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![
-        0xA9, 0x80, // LDA #$80
+        0xA0, 0x01, // LDY #$01
     ]);
-    assert!(cpu.status.contains(StatusFlags::NEGATIVE));
+    assert_eq!(cpu.registers.y, 0x01);
+}
+
+#[test]
+fn test_sbc() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0xF0, // LDA #$F0
+        0xE9, 0x08, // SBC #$08
+    ]);
+    assert_eq!(cpu.registers.a, 0xE7);
+}
+
+#[test]
+fn test_sbc_with_carry() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0x38, // SEC
+        0xA9, 0x40, // LDA #$40
+        0xE9, 0x08, // SBC #$08
+    ]);
+    assert_eq!(cpu.registers.a, 0x38);
+}
+
+#[test]
+fn test_sbc_with_overflow() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x40, // LDA #$40
+        0xE9, 0x80, // SBC #$80
+    ]);
+    assert!(cpu.status.contains(StatusFlags::OVERFLOW));
+}
+
+#[test]
+fn test_sec() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0x38, // SEC
+    ]);
+    assert!(cpu.status.contains(StatusFlags::CARRY));
 }
 
 #[test]
@@ -182,24 +231,4 @@ fn test_tax() {
         0xAA, // TAX
     ]);
     assert_eq!(cpu.registers.x, 0x01);
-}
-
-#[test]
-fn test_tax_zero_flag() {
-    let mut cpu = CPU::new();
-    cpu.load_and_run(vec![
-        0xA9, 0x00, // LDA #$00
-        0xAA,
-    ]);
-    assert!(cpu.status.contains(StatusFlags::ZERO));
-}
-
-#[test]
-fn test_tax_negative_flag() {
-    let mut cpu = CPU::new();
-    cpu.load_and_run(vec![
-        0xA9, 0x80, // LDA #$80
-        0xAA,
-    ]);
-    assert!(cpu.status.contains(StatusFlags::NEGATIVE));
 }

@@ -65,6 +65,16 @@ impl CPU {
             0xAC => Instruction::new(4, CPU::ldy, CPU::absolute),
             0xBC => Instruction::new(4, CPU::ldy, CPU::absolute_x),
 
+            // Subtract with Carry
+            0xE9 => Instruction::new(2, CPU::sbc, CPU::immediate),
+            0xE5 => Instruction::new(3, CPU::sbc, CPU::zero_page),
+            0xF5 => Instruction::new(4, CPU::sbc, CPU::zero_page_x),
+            0xED => Instruction::new(4, CPU::sbc, CPU::absolute),
+            0xFD => Instruction::new(4, CPU::sbc, CPU::absolute_x),
+            0xF9 => Instruction::new(4, CPU::sbc, CPU::absolute_y),
+            0xE1 => Instruction::new(6, CPU::sbc, CPU::indirect_x),
+            0xF1 => Instruction::new(5, CPU::sbc, CPU::indirect_y),
+
             // Set Carry Flag
             0x38 => Instruction::new(2, CPU::sec, CPU::implied),
 
@@ -86,7 +96,7 @@ impl CPU {
 
         let result = a + m + c;
         let value = result as u8;
-        let overflow = (a ^ m) & (a ^ result) & 0x80 != 0;
+        let overflow = !((a ^ m) & (a ^ result)) & 0x80 != 0;
 
         self.registers.a = value;
 
@@ -129,6 +139,23 @@ impl CPU {
 
         self.update_zero_flag(value);
         self.update_negative_flag(value);
+    }
+
+    fn sbc(&mut self) {
+        let a = self.registers.a as u16;
+        let m = self.mode() as u16 ^ 0xFF;
+        let c = self.status.contains(StatusFlags::CARRY) as u16;
+
+        let result = a + m + c;
+        let value = result as u8;
+        let overflow = !((a ^ m) & (a ^ result)) & 0x80 != 0;
+
+        self.registers.a = value;
+
+        self.update_carry_flag(result > 0xFF);
+        self.update_zero_flag(value);
+        self.update_negative_flag(value);
+        self.update_overflow_flag(overflow);
     }
 
     fn sec(&mut self) {
