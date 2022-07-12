@@ -28,6 +28,7 @@ pub struct CPU {
     registers: Registers,
     status: StatusFlags,
     addressed: u16,
+    implied: bool,
     memory: [u8; 0xFFFF],
 }
 
@@ -43,6 +44,7 @@ impl CPU {
             },
             status: INITIAL_STATUS_FLAGS,
             addressed: 0,
+            implied: false,
             memory: [0; 0xFFFF],
         }
     }
@@ -66,7 +68,9 @@ impl CPU {
     pub fn run(&mut self) {
         loop {
             let instruction = self.fetch_instruction();
+
             self.registers.pc += 1;
+            self.implied = false;
 
             (instruction.mode)(self);
             (instruction.operate)(self);
@@ -99,7 +103,9 @@ impl CPU {
         LittleEndian::write_u16(&mut self.memory[address as usize..], value);
     }
 
-    fn implied(&mut self) {}
+    fn implied(&mut self) {
+        self.implied = true;
+    }
 
     fn immediate(&mut self) {
         self.addressed = self.registers.pc;
@@ -156,7 +162,11 @@ impl CPU {
         self.registers.pc += 1;
     }
 
-    fn mode(&self) -> u8 {
+    fn mode(&mut self) -> u8 {
+        if self.implied {
+            return self.registers.a;
+        }
+
         self.read(self.addressed)
     }
 }

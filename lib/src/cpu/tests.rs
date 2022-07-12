@@ -139,12 +139,57 @@ fn test_adc_with_overflow() {
 }
 
 #[test]
+fn test_and() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9,        // LDA
+        0b1111_0000, // #%00001111
+        0x29,        // AND
+        0b0011_1111, // #%11110011
+    ]);
+    assert_eq!(cpu.registers.a, 0b0011_0000);
+}
+
+#[test]
+fn test_asl() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x04, // LDA #$04
+        0x0A, // ASL
+    ]);
+    assert_eq!(cpu.registers.a, 0x08);
+}
+
+#[test]
+fn test_asl_with_carry() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x80, // LDA #$80
+        0x0A, // ASL
+    ]);
+    assert_eq!(cpu.registers.a, 0x00);
+    assert!(cpu.status.contains(StatusFlags::CARRY));
+}
+
+#[test]
 fn test_clc() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![
         0x18, // CLC
     ]);
     assert!(!cpu.status.contains(StatusFlags::CARRY));
+}
+
+#[test]
+fn test_eor() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9,        // LDA
+        0b1100_1100, // #%11001100
+        0x49,        // EOR
+        0b0000_1111, // #%11110000
+    ]);
+    assert_eq!(cpu.registers.a, 0b1100_0011);
 }
 
 #[test]
@@ -181,6 +226,38 @@ fn test_ldy() {
         0xA0, 0x01, // LDY #$01
     ]);
     assert_eq!(cpu.registers.y, 0x01);
+}
+
+#[test]
+fn test_lsr() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x04, // LDA #$04
+        0x4A, // LSR
+    ]);
+    assert_eq!(cpu.registers.a, 0x02);
+}
+
+#[test]
+fn test_lsr_with_carry() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x11, // LDA #$80
+        0x4A, // LSR
+    ]);
+    assert!(cpu.status.contains(StatusFlags::CARRY));
+}
+
+#[test]
+fn test_ora() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9,        // LDA
+        0b1100_1100, // #%11001100
+        0x09,        // ORA
+        0b0000_1111, // #%11110000
+    ]);
+    assert_eq!(cpu.registers.a, 0b1100_1111);
 }
 
 #[test]
