@@ -138,6 +138,15 @@ impl CPU {
             // Transfer accumulator to X
             0xAA => Instruction::new(2, CPU::tax, CPU::implied),
 
+            // Transfer accumulator to Y
+            0x8A => Instruction::new(2, CPU::tay, CPU::implied),
+
+            // Transfer X to accumulator
+            0xA8 => Instruction::new(2, CPU::txa, CPU::implied),
+
+            // Transfer Y to accumulator
+            0x98 => Instruction::new(2, CPU::tya, CPU::implied),
+
             _ => panic!("Invalid opcode: {:02X}", opcode),
         }
     }
@@ -303,6 +312,33 @@ impl CPU {
         let value = self.registers.a;
 
         self.registers.x = value;
+
+        self.update_zero_flag(value);
+        self.update_negative_flag(value);
+    }
+
+    fn tay(&mut self) {
+        let value = self.registers.a;
+
+        self.registers.y = value;
+
+        self.update_zero_flag(value);
+        self.update_negative_flag(value);
+    }
+
+    fn txa(&mut self) {
+        let value = self.registers.x;
+
+        self.registers.a = value;
+
+        self.update_zero_flag(value);
+        self.update_negative_flag(value);
+    }
+
+    fn tya(&mut self) {
+        let value = self.registers.y;
+
+        self.registers.a = value;
 
         self.update_zero_flag(value);
         self.update_negative_flag(value);

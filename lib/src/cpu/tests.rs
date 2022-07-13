@@ -354,3 +354,37 @@ fn test_tax() {
     ]);
     assert_eq!(cpu.registers.x, 0x01);
 }
+
+#[test]
+fn test_tay() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x01, // LDA #$01
+        0x8A, // TAY
+    ]);
+    assert_eq!(cpu.registers.y, 0x01);
+}
+
+#[test]
+fn test_txa() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x42, // LDA #$42
+        0xAA, // TAX
+        0xA9, 0x01, // LDA #$01
+        0xA8, // TXA
+    ]);
+    assert_eq!(cpu.registers.a, 0x42);
+}
+
+#[test]
+fn test_tya() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x42, // LDA #$42
+        0x8A, // TAY
+        0xA9, 0x01, // LDA #$01
+        0x98, // TYA
+    ]);
+    assert_eq!(cpu.registers.a, 0x42);
+}
