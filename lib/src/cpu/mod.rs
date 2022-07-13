@@ -67,17 +67,18 @@ impl CPU {
 
     pub fn run(&mut self) {
         loop {
-            let instruction = self.fetch_instruction();
+            let opcode = self.read(self.registers.pc);
+            let instruction = self.fetch_instruction(opcode);
 
             self.registers.pc += 1;
             self.implied = false;
 
-            (instruction.mode)(self);
-            (instruction.operate)(self);
-
-            if self.status.contains(StatusFlags::INTERRUPT_DISABLE) {
+            if opcode == 0x00 {
                 break;
             }
+
+            (instruction.mode)(self);
+            (instruction.operate)(self);
         }
     }
 

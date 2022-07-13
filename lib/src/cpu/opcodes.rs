@@ -17,13 +17,8 @@ impl Instruction {
 }
 
 impl CPU {
-    pub fn fetch_instruction(&self) -> Instruction {
-        let opcode = self.read(self.registers.pc);
-
+    pub fn fetch_instruction(&self, opcode: u8) -> Instruction {
         match opcode {
-            // Break
-            0x00 => Instruction::new(2, CPU::brk, CPU::implied),
-
             // Add with Carry
             0x69 => Instruction::new(2, CPU::adc, CPU::immediate),
             0x65 => Instruction::new(3, CPU::adc, CPU::zero_page),
@@ -51,8 +46,20 @@ impl CPU {
             0x0E => Instruction::new(6, CPU::asl, CPU::absolute),
             0x1E => Instruction::new(7, CPU::asl, CPU::absolute_x),
 
+            // Break
+            0x00 => Instruction::new(2, CPU::brk, CPU::implied),
+
             // Clear Carry Flag
             0x18 => Instruction::new(2, CPU::clc, CPU::implied),
+
+            // Clear Decimal Flag
+            0xD8 => Instruction::new(2, CPU::cld, CPU::implied),
+
+            // Clear Interrupt Disable
+            0x58 => Instruction::new(2, CPU::cli, CPU::implied),
+
+            // Clear Overflow Flag
+            0xB8 => Instruction::new(2, CPU::clv, CPU::implied),
 
             // Exclusive OR
             0x49 => Instruction::new(2, CPU::eor, CPU::immediate),
@@ -122,15 +129,17 @@ impl CPU {
             // Set Carry Flag
             0x38 => Instruction::new(2, CPU::sec, CPU::implied),
 
+            // Set Decimal Flag
+            0xF8 => Instruction::new(2, CPU::sed, CPU::implied),
+
+            // Set Interrupt Disable
+            0x78 => Instruction::new(2, CPU::sei, CPU::implied),
+
             // Transfer accumulator to X
             0xAA => Instruction::new(2, CPU::tax, CPU::implied),
 
             _ => panic!("Invalid opcode: {:02X}", opcode),
         }
-    }
-
-    fn brk(&mut self) {
-        self.status.insert(StatusFlags::INTERRUPT_DISABLE);
     }
 
     fn adc(&mut self) {
@@ -174,8 +183,24 @@ impl CPU {
         }
     }
 
+    fn brk(&mut self) {
+        todo!();
+    }
+
     fn clc(&mut self) {
         self.status.remove(StatusFlags::CARRY);
+    }
+
+    fn cld(&mut self) {
+        self.status.remove(StatusFlags::DECIMAL);
+    }
+
+    fn cli(&mut self) {
+        self.status.remove(StatusFlags::INTERRUPT_DISABLE);
+    }
+
+    fn clv(&mut self) {
+        self.status.remove(StatusFlags::OVERFLOW);
     }
 
     fn eor(&mut self) {
@@ -264,6 +289,14 @@ impl CPU {
 
     fn sec(&mut self) {
         self.status.insert(StatusFlags::CARRY);
+    }
+
+    fn sed(&mut self) {
+        self.status.insert(StatusFlags::DECIMAL);
+    }
+
+    fn sei(&mut self) {
+        self.status.insert(StatusFlags::INTERRUPT_DISABLE);
     }
 
     fn tax(&mut self) {

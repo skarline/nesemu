@@ -181,6 +181,33 @@ fn test_clc() {
 }
 
 #[test]
+fn test_cld() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xD8, // CLD
+    ]);
+    assert!(!cpu.status.contains(StatusFlags::DECIMAL));
+}
+
+#[test]
+fn test_cli() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0x58, // CLI
+    ]);
+    assert!(!cpu.status.contains(StatusFlags::INTERRUPT_DISABLE));
+}
+
+#[test]
+fn test_clv() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xB8, // CLV
+    ]);
+    assert!(!cpu.status.contains(StatusFlags::OVERFLOW));
+}
+
+#[test]
 fn test_eor() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![
@@ -298,6 +325,24 @@ fn test_sec() {
         0x38, // SEC
     ]);
     assert!(cpu.status.contains(StatusFlags::CARRY));
+}
+
+#[test]
+fn test_sed() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xF8, // SED
+    ]);
+    assert!(cpu.status.contains(StatusFlags::DECIMAL));
+}
+
+#[test]
+fn test_sei() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0x78, // SEI
+    ]);
+    assert!(cpu.status.contains(StatusFlags::INTERRUPT_DISABLE));
 }
 
 #[test]
