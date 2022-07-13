@@ -220,6 +220,37 @@ fn test_eor() {
 }
 
 #[test]
+fn test_inc() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x01, // LDA #$01
+        0x85, 0x80, // STA $80
+        0xE6, 0x80, // INC $80
+    ]);
+    assert!(cpu.read(0x80) == 0x02);
+}
+
+#[test]
+fn test_inx() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA2, 0x01, // LDX #$01
+        0xE8, // INX
+    ]);
+    assert_eq!(cpu.registers.x, 0x02);
+}
+
+#[test]
+fn test_iny() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA0, 0x01, // LDY #$01
+        0xC8, // INY
+    ]);
+    assert!(cpu.registers.y == 0x02);
+}
+
+#[test]
 fn test_jmp() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![
@@ -343,6 +374,36 @@ fn test_sei() {
         0x78, // SEI
     ]);
     assert!(cpu.status.contains(StatusFlags::INTERRUPT_DISABLE));
+}
+
+#[test]
+fn test_sta() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x01, // LDA #$01
+        0x8D, 0x00, 0x40, // STA $4000
+    ]);
+    assert_eq!(cpu.read(0x4000), 0x01);
+}
+
+#[test]
+fn test_stx() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA2, 0x01, // LDX #$01
+        0x8E, 0x00, 0x40, // STX $4000
+    ]);
+    assert_eq!(cpu.read(0x4000), 0x01);
+}
+
+#[test]
+fn test_sty() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA0, 0x01, // LDY #$01
+        0x8C, 0x00, 0x40, // STY $4000
+    ]);
+    assert_eq!(cpu.read(0x4000), 0x01);
 }
 
 #[test]

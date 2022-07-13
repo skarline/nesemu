@@ -71,6 +71,18 @@ impl CPU {
             0x41 => Instruction::new(6, CPU::eor, CPU::indirect_x),
             0x51 => Instruction::new(5, CPU::eor, CPU::indirect_y),
 
+            // Increment Memory
+            0xE6 => Instruction::new(5, CPU::inc, CPU::zero_page),
+            0xF6 => Instruction::new(6, CPU::inc, CPU::zero_page_x),
+            0xEE => Instruction::new(6, CPU::inc, CPU::absolute),
+            0xFE => Instruction::new(7, CPU::inc, CPU::absolute_x),
+
+            // Increment X
+            0xE8 => Instruction::new(2, CPU::inx, CPU::implied),
+
+            // Increment Y
+            0xC8 => Instruction::new(2, CPU::iny, CPU::implied),
+
             // Jump
             0x4C => Instruction::new(3, CPU::jmp, CPU::absolute),
             0x6C => Instruction::new(5, CPU::jmp, CPU::indirect),
@@ -106,6 +118,9 @@ impl CPU {
             0x4E => Instruction::new(6, CPU::lsr, CPU::absolute),
             0x5E => Instruction::new(7, CPU::lsr, CPU::absolute_x),
 
+            // No Operation
+            0xEA => Instruction::new(2, CPU::nop, CPU::implied),
+
             // Logical Inclusive OR
             0x09 => Instruction::new(2, CPU::ora, CPU::immediate),
             0x05 => Instruction::new(3, CPU::ora, CPU::zero_page),
@@ -134,6 +149,25 @@ impl CPU {
 
             // Set Interrupt Disable
             0x78 => Instruction::new(2, CPU::sei, CPU::implied),
+
+            // Store Accumulator
+            0x85 => Instruction::new(3, CPU::sta, CPU::zero_page),
+            0x95 => Instruction::new(4, CPU::sta, CPU::zero_page_x),
+            0x8D => Instruction::new(4, CPU::sta, CPU::absolute),
+            0x9D => Instruction::new(5, CPU::sta, CPU::absolute_x),
+            0x99 => Instruction::new(5, CPU::sta, CPU::absolute_y),
+            0x81 => Instruction::new(6, CPU::sta, CPU::indirect_x),
+            0x91 => Instruction::new(6, CPU::sta, CPU::indirect_y),
+
+            // Store X
+            0x86 => Instruction::new(3, CPU::stx, CPU::zero_page),
+            0x96 => Instruction::new(4, CPU::stx, CPU::zero_page_y),
+            0x8E => Instruction::new(4, CPU::stx, CPU::absolute),
+
+            // Store Y
+            0x84 => Instruction::new(3, CPU::sty, CPU::zero_page),
+            0x94 => Instruction::new(4, CPU::sty, CPU::zero_page_x),
+            0x8C => Instruction::new(4, CPU::sty, CPU::absolute),
 
             // Transfer accumulator to X
             0xAA => Instruction::new(2, CPU::tax, CPU::implied),
@@ -221,6 +255,33 @@ impl CPU {
         self.update_negative_flag(value);
     }
 
+    fn inc(&mut self) {
+        let value = self.mode().wrapping_add(1);
+
+        self.write(self.addressed, value);
+
+        self.update_zero_flag(value);
+        self.update_negative_flag(value);
+    }
+
+    fn inx(&mut self) {
+        let value = self.registers.x.wrapping_add(1);
+
+        self.registers.x = value;
+
+        self.update_zero_flag(value);
+        self.update_negative_flag(value);
+    }
+
+    fn iny(&mut self) {
+        let value = self.registers.y.wrapping_add(1);
+
+        self.registers.y = value;
+
+        self.update_zero_flag(value);
+        self.update_negative_flag(value);
+    }
+
     fn jmp(&mut self) {
         self.registers.pc = self.addressed;
     }
@@ -270,6 +331,10 @@ impl CPU {
         }
     }
 
+    fn nop(&mut self) {
+        // No operation
+    }
+
     fn ora(&mut self) {
         let value = self.registers.a | self.mode();
 
@@ -306,6 +371,18 @@ impl CPU {
 
     fn sei(&mut self) {
         self.status.insert(StatusFlags::INTERRUPT_DISABLE);
+    }
+
+    fn sta(&mut self) {
+        self.write(self.addressed, self.registers.a);
+    }
+
+    fn stx(&mut self) {
+        self.write(self.addressed, self.registers.x);
+    }
+
+    fn sty(&mut self) {
+        self.write(self.addressed, self.registers.y);
     }
 
     fn tax(&mut self) {

@@ -133,7 +133,7 @@ impl CPU {
     }
 
     fn zero_page(&mut self) {
-        self.addressed = self.read_word(self.registers.pc);
+        self.addressed = self.read(self.registers.pc) as u16;
         self.registers.pc += 1;
     }
 
