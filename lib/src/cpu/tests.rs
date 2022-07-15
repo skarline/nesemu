@@ -180,6 +180,17 @@ fn test_bcs() {
 }
 
 #[test]
+fn test_beq() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x03, // LDA #$03
+        0xE9, 0x01, // SBC #$01
+        0xF0, 0xFC, // BEQ $FA
+    ]);
+    assert_eq!(cpu.registers.a, 0x01);
+}
+
+#[test]
 fn test_asl_with_carry() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![
@@ -225,6 +236,46 @@ fn test_clv() {
         0xB8, // CLV
     ]);
     assert!(!cpu.status.contains(StatusFlags::OVERFLOW));
+}
+
+#[test]
+fn test_cmp() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x80, // LDA #$80
+        0xC9, 0x80, // CMP #$80
+    ]);
+    assert_eq!(cpu.registers.a, 0x80);
+}
+
+#[test]
+fn test_cmp_negative() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x80, // LDA #$80
+        0xC9, 0x81, // CMP #$81
+    ]);
+    assert!(cpu.status.contains(StatusFlags::NEGATIVE));
+}
+
+#[test]
+fn test_cpx() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x80, // LDA #$80
+        0xE0, 0x80, // CPX #$80
+    ]);
+    assert_eq!(cpu.registers.a, 0x80);
+}
+
+#[test]
+fn test_cpy() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x80, // LDA #$80
+        0xC0, 0x80, // CPY #$80
+    ]);
+    assert_eq!(cpu.registers.a, 0x80);
 }
 
 #[test]
@@ -391,6 +442,7 @@ fn test_sed() {
 fn test_sei() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![
+        0x58, // CLI
         0x78, // SEI
     ]);
     assert!(cpu.status.contains(StatusFlags::INTERRUPT_DISABLE));

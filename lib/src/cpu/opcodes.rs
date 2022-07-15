@@ -52,6 +52,9 @@ impl CPU {
             // Branch if Carry Set
             0xB0 => Instruction::new(2, CPU::bcs, CPU::immediate),
 
+            // Branch if Equal
+            0xF0 => Instruction::new(2, CPU::beq, CPU::immediate),
+
             // Break
             0x00 => Instruction::new(2, CPU::brk, CPU::implied),
 
@@ -66,6 +69,26 @@ impl CPU {
 
             // Clear Overflow Flag
             0xB8 => Instruction::new(2, CPU::clv, CPU::implied),
+
+            // Compare Accumulator
+            0xC9 => Instruction::new(2, CPU::cmp, CPU::immediate),
+            0xC5 => Instruction::new(2, CPU::cmp, CPU::zero_page),
+            0xD5 => Instruction::new(2, CPU::cmp, CPU::zero_page_x),
+            0xCD => Instruction::new(3, CPU::cmp, CPU::absolute),
+            0xDD => Instruction::new(3, CPU::cmp, CPU::absolute_x),
+            0xD9 => Instruction::new(3, CPU::cmp, CPU::absolute_y),
+            0xC1 => Instruction::new(2, CPU::cmp, CPU::indirect_x),
+            0xD1 => Instruction::new(2, CPU::cmp, CPU::indirect_y),
+
+            // Compare X
+            0xE0 => Instruction::new(2, CPU::cpx, CPU::immediate),
+            0xE4 => Instruction::new(3, CPU::cpx, CPU::zero_page),
+            0xEC => Instruction::new(4, CPU::cpx, CPU::absolute),
+
+            // Compare Y
+            0xC0 => Instruction::new(2, CPU::cpy, CPU::immediate),
+            0xC4 => Instruction::new(3, CPU::cpy, CPU::zero_page),
+            0xCC => Instruction::new(4, CPU::cpy, CPU::absolute),
 
             // Exclusive OR
             0x49 => Instruction::new(2, CPU::eor, CPU::immediate),
@@ -244,6 +267,12 @@ impl CPU {
         }
     }
 
+    fn beq(&mut self) {
+        if self.status.contains(StatusFlags::ZERO) {
+            self.branch();
+        }
+    }
+
     fn brk(&mut self) {
         todo!();
     }
@@ -262,6 +291,39 @@ impl CPU {
 
     fn clv(&mut self) {
         self.status.remove(StatusFlags::OVERFLOW);
+    }
+
+    fn cmp(&mut self) {
+        let a = self.registers.a;
+        let m = self.mode();
+
+        let value = a.wrapping_sub(m);
+
+        self.update_carry_flag(a >= m);
+        self.update_zero_flag(value);
+        self.update_negative_flag(value & 0x80);
+    }
+
+    fn cpx(&mut self) {
+        let x = self.registers.x;
+        let m = self.mode();
+
+        let value = x.wrapping_sub(m);
+
+        self.update_carry_flag(x >= m);
+        self.update_zero_flag(value);
+        self.update_negative_flag(value & 0x80);
+    }
+
+    fn cpy(&mut self) {
+        let y = self.registers.y;
+        let m = self.mode();
+
+        let value = y.wrapping_sub(m);
+
+        self.update_carry_flag(y >= m);
+        self.update_zero_flag(value);
+        self.update_negative_flag(value & 0x80);
     }
 
     fn eor(&mut self) {
