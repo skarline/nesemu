@@ -80,7 +80,7 @@ fn test_addressing_mode_indirect() {
     cpu.load_and_run(vec![
         0x6C, 0x00, 0x10, // JMP ($1000)
     ]);
-    assert_eq!(cpu.registers.pc, 0xff01);
+    assert_eq!(cpu.registers.pc, 0xff00);
 }
 
 #[test]
@@ -161,6 +161,25 @@ fn test_asl() {
 }
 
 #[test]
+fn test_bcc() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0x90, 0x20, // BCC $20
+    ]);
+    assert_eq!(cpu.registers.pc, 0x8022);
+}
+
+#[test]
+fn test_bcs() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0x38, // SEC
+        0xB0, 0x20, // BCC $20
+    ]);
+    assert_eq!(cpu.registers.pc, 0x8023);
+}
+
+#[test]
 fn test_asl_with_carry() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![
@@ -175,6 +194,7 @@ fn test_asl_with_carry() {
 fn test_clc() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![
+        0x38, // SEC
         0x18, // CLC
     ]);
     assert!(!cpu.status.contains(StatusFlags::CARRY));
@@ -256,7 +276,7 @@ fn test_jmp() {
     cpu.load_and_run(vec![
         0x4C, 0x00, 0x40, // JMP $4000
     ]);
-    assert_eq!(cpu.registers.pc, 0x4001);
+    assert_eq!(cpu.registers.pc, 0x4000);
 }
 
 #[test]

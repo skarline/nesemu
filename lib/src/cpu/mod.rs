@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use byteorder::{ByteOrder, LittleEndian};
 
-const INITIAL_STATUS_FLAGS: StatusFlags = StatusFlags::from_bits_truncate(0b1001_0000);
+const INITIAL_STATUS_FLAGS: StatusFlags = StatusFlags::from_bits_truncate(0b0010_0100);
 
 bitflags! {
   pub struct StatusFlags: u8 {
@@ -70,12 +70,12 @@ impl CPU {
             let opcode = self.read(self.registers.pc);
             let instruction = self.fetch_instruction(opcode);
 
-            self.registers.pc += 1;
-            self.implied = false;
-
             if opcode == 0x00 {
                 break;
             }
+
+            self.registers.pc += 1;
+            self.implied = false;
 
             (instruction.mode)(self);
             (instruction.operate)(self);

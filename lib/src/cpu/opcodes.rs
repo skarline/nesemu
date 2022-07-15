@@ -46,6 +46,12 @@ impl CPU {
             0x0E => Instruction::new(6, CPU::asl, CPU::absolute),
             0x1E => Instruction::new(7, CPU::asl, CPU::absolute_x),
 
+            // Branch if Carry Clear
+            0x90 => Instruction::new(2, CPU::bcc, CPU::immediate),
+
+            // Branch if Carry Set
+            0xB0 => Instruction::new(2, CPU::bcs, CPU::immediate),
+
             // Break
             0x00 => Instruction::new(2, CPU::brk, CPU::implied),
 
@@ -223,6 +229,18 @@ impl CPU {
             self.registers.a = value;
         } else {
             self.write(self.addressed, value);
+        }
+    }
+
+    fn bcc(&mut self) {
+        if !self.status.contains(StatusFlags::CARRY) {
+            self.branch();
+        }
+    }
+
+    fn bcs(&mut self) {
+        if self.status.contains(StatusFlags::CARRY) {
+            self.branch();
         }
     }
 
@@ -419,6 +437,12 @@ impl CPU {
 
         self.update_zero_flag(value);
         self.update_negative_flag(value);
+    }
+
+    #[inline]
+    fn branch(&mut self) {
+        let offset = self.mode() as i8;
+        self.registers.pc = self.registers.pc.wrapping_add(offset as u16);
     }
 
     #[inline]
