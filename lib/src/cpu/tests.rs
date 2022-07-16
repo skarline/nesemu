@@ -191,6 +191,57 @@ fn test_beq() {
 }
 
 #[test]
+fn test_bmi() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0xF0, // LDA #$F0
+        0x30, 0x10, // BMI $10
+    ]);
+    assert_eq!(cpu.registers.pc, 0x8014);
+}
+
+#[test]
+fn test_bne() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x03, // LDA #$03
+        0xE9, 0x01, // SBC #$01
+        0xD0, 0xFC, // BNE $FA
+    ]);
+    assert_eq!(cpu.registers.pc, 0x8006);
+}
+
+#[test]
+fn test_bpl() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x10, // LDA #$10
+        0x10, 0x10, // BPL $10
+    ]);
+    assert_eq!(cpu.registers.pc, 0x8014);
+}
+
+#[test]
+fn test_bvc() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0x50, 0x20, // BVC $20
+    ]);
+    assert_eq!(cpu.registers.pc, 0x8022);
+}
+
+#[test]
+fn test_bvs() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x40, // LDA #$40
+        0xE9, 0x80, // SBC #$80
+        0x70, 0x10, // BVS $10
+    ]);
+    assert_eq!(cpu.registers.pc, 0x8016);
+}
+
+#[test]
 fn test_asl_with_carry() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![
@@ -276,6 +327,36 @@ fn test_cpy() {
         0xC0, 0x80, // CPY #$80
     ]);
     assert_eq!(cpu.registers.a, 0x80);
+}
+
+#[test]
+fn test_dec() {
+    let mut cpu = CPU::new();
+    cpu.write(0x20, 0x80);
+    cpu.load_and_run(vec![
+        0xC6, 0x20, // DEC $20
+    ]);
+    assert_eq!(cpu.read(0x20), 0x7F);
+}
+
+#[test]
+fn test_dex() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA2, 0x80, // LDX #$80
+        0xCA, // DEX
+    ]);
+    assert_eq!(cpu.registers.x, 0x7F);
+}
+
+#[test]
+fn test_dey() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA0, 0x80, // LDY #$80
+        0x88, // DEY
+    ]);
+    assert_eq!(cpu.registers.y, 0x7F);
 }
 
 #[test]

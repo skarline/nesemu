@@ -55,6 +55,21 @@ impl CPU {
             // Branch if Equal
             0xF0 => Instruction::new(2, CPU::beq, CPU::immediate),
 
+            // Branch if Minus
+            0x30 => Instruction::new(2, CPU::bmi, CPU::immediate),
+
+            // Branch if Not Equal
+            0xD0 => Instruction::new(2, CPU::bne, CPU::immediate),
+
+            // Branch if Positive
+            0x10 => Instruction::new(2, CPU::bpl, CPU::immediate),
+
+            // Branch if Overflow Clear
+            0x50 => Instruction::new(2, CPU::bvc, CPU::immediate),
+
+            // Branch if Overflow Set
+            0x70 => Instruction::new(2, CPU::bvs, CPU::immediate),
+
             // Break
             0x00 => Instruction::new(2, CPU::brk, CPU::implied),
 
@@ -89,6 +104,18 @@ impl CPU {
             0xC0 => Instruction::new(2, CPU::cpy, CPU::immediate),
             0xC4 => Instruction::new(3, CPU::cpy, CPU::zero_page),
             0xCC => Instruction::new(4, CPU::cpy, CPU::absolute),
+
+            // Decrement Memory
+            0xC6 => Instruction::new(5, CPU::dec, CPU::zero_page),
+            0xD6 => Instruction::new(6, CPU::dec, CPU::zero_page_x),
+            0xCE => Instruction::new(3, CPU::dec, CPU::absolute),
+            0xDE => Instruction::new(4, CPU::dec, CPU::absolute_x),
+
+            // Decrement X
+            0xCA => Instruction::new(2, CPU::dex, CPU::implied),
+
+            // Decrement Y
+            0x88 => Instruction::new(2, CPU::dey, CPU::implied),
 
             // Exclusive OR
             0x49 => Instruction::new(2, CPU::eor, CPU::immediate),
@@ -273,6 +300,36 @@ impl CPU {
         }
     }
 
+    fn bmi(&mut self) {
+        if self.status.contains(StatusFlags::NEGATIVE) {
+            self.branch();
+        }
+    }
+
+    fn bne(&mut self) {
+        if !self.status.contains(StatusFlags::ZERO) {
+            self.branch();
+        }
+    }
+
+    fn bpl(&mut self) {
+        if !self.status.contains(StatusFlags::NEGATIVE) {
+            self.branch();
+        }
+    }
+
+    fn bvc(&mut self) {
+        if !self.status.contains(StatusFlags::OVERFLOW) {
+            self.branch();
+        }
+    }
+
+    fn bvs(&mut self) {
+        if self.status.contains(StatusFlags::OVERFLOW) {
+            self.branch();
+        }
+    }
+
     fn brk(&mut self) {
         todo!();
     }
@@ -301,7 +358,7 @@ impl CPU {
 
         self.update_carry_flag(a >= m);
         self.update_zero_flag(value);
-        self.update_negative_flag(value & 0x80);
+        self.update_negative_flag(value);
     }
 
     fn cpx(&mut self) {
@@ -312,7 +369,7 @@ impl CPU {
 
         self.update_carry_flag(x >= m);
         self.update_zero_flag(value);
-        self.update_negative_flag(value & 0x80);
+        self.update_negative_flag(value);
     }
 
     fn cpy(&mut self) {
@@ -323,7 +380,34 @@ impl CPU {
 
         self.update_carry_flag(y >= m);
         self.update_zero_flag(value);
-        self.update_negative_flag(value & 0x80);
+        self.update_negative_flag(value);
+    }
+
+    fn dec(&mut self) {
+        let value = self.mode().wrapping_sub(1);
+
+        self.write(self.addressed, value);
+
+        self.update_zero_flag(value);
+        self.update_negative_flag(value);
+    }
+
+    fn dex(&mut self) {
+        let value = self.registers.x.wrapping_sub(1);
+
+        self.registers.x = value;
+
+        self.update_zero_flag(value);
+        self.update_negative_flag(value);
+    }
+
+    fn dey(&mut self) {
+        let value = self.registers.y.wrapping_sub(1);
+
+        self.registers.y = value;
+
+        self.update_zero_flag(value);
+        self.update_negative_flag(value);
     }
 
     fn eor(&mut self) {
