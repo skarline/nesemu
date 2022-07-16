@@ -433,6 +433,15 @@ fn test_jmp() {
 }
 
 #[test]
+fn test_jsr() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0x20, 0x00, 0x40, // JSR $4000
+    ]);
+    assert_eq!(cpu.registers.pc, 0x4000);
+}
+
+#[test]
 fn test_lda() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![
@@ -498,7 +507,7 @@ fn test_pha() {
         0xA9, 0x80, // LDA #$80
         0x48, // PHA
     ]);
-    assert_eq!(cpu.read(0x0100), 0x80);
+    assert_eq!(cpu.read(0x01FD), 0x80);
 }
 
 #[test]
@@ -507,7 +516,7 @@ fn test_php() {
     cpu.load_and_run(vec![
         0x08, // PHP
     ]);
-    assert_eq!(cpu.read(0x0100), 0b0010_0100);
+    assert_eq!(cpu.read(0x01FD), 0b0010_0100);
 }
 
 #[test]
@@ -555,6 +564,19 @@ fn test_ror() {
         0x6A,        // ROR
     ]);
     assert_eq!(cpu.registers.a, 0b0110_0110);
+}
+
+#[test]
+fn test_rts() {
+    let mut cpu = CPU::new();
+    cpu.write(0x4000, 0xA9); // LDA
+    cpu.write(0x4001, 0x10); // #$10
+    cpu.write(0x4002, 0x60); // RTS
+    cpu.load_and_run(vec![
+        0x20, 0x00, 0x40, // JSR $4000
+        0x69, 0x0A, // ADC #$0A
+    ]);
+    assert_eq!(cpu.registers.a, 0x1A);
 }
 
 #[test]

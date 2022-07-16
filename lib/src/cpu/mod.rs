@@ -39,7 +39,7 @@ impl CPU {
                 a: 0,
                 x: 0,
                 y: 0,
-                sp: 0,
+                sp: 0xFD,
                 pc: 0,
             },
             status: INITIAL_STATUS_FLAGS,
@@ -54,7 +54,7 @@ impl CPU {
             a: 0,
             x: 0,
             y: 0,
-            sp: 0,
+            sp: 0xFD,
             pc: self.read_word(0xFFFC),
         };
         self.status = INITIAL_STATUS_FLAGS;
@@ -88,20 +88,54 @@ impl CPU {
         self.run();
     }
 
+    #[inline]
     fn read(&self, address: u16) -> u8 {
         self.memory[address as usize]
     }
 
+    #[inline]
     fn write(&mut self, address: u16, value: u8) {
         self.memory[address as usize] = value;
     }
 
+    #[inline]
     fn read_word(&self, address: u16) -> u16 {
         LittleEndian::read_u16(&self.memory[address as usize..])
     }
 
+    #[inline]
     fn write_word(&mut self, address: u16, value: u16) {
         LittleEndian::write_u16(&mut self.memory[address as usize..], value);
+    }
+
+    #[inline]
+    fn pull(&mut self) -> u8 {
+        self.registers.sp = self.registers.sp.wrapping_add(1);
+        self.read(0x0100 + self.registers.sp as u16)
+    }
+
+    #[inline]
+    fn push(&mut self, value: u8) {
+        self.write(0x0100 + self.registers.sp as u16, value);
+        self.registers.sp = self.registers.sp.wrapping_sub(1);
+    }
+
+    #[inline]
+    fn pull_word(&mut self) -> u16 {
+        self.registers.sp = self.registers.sp.wrapping_add(2);
+        self.read_word(0x0100 + self.registers.sp as u16)
+    }
+
+    #[inline]
+    fn push_word(&mut self, value: u16) {
+        self.write_word(0x0100 + self.registers.sp as u16, value);
+        self.registers.sp = self.registers.sp.wrapping_sub(2);
+    }
+
+    #[inline]
+    fn branch(&mut self) {
+        let offset = self.mode() as i8;
+        self.registers.pc = self.registers.pc.wrapping_add(offset as u16);
     }
 
     fn implied(&mut self) {

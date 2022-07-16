@@ -29,7 +29,7 @@ impl CPU {
             0x61 => Instruction::new(6, CPU::adc, CPU::indirect_x),
             0x71 => Instruction::new(5, CPU::adc, CPU::indirect_y),
 
-            // AND
+            // Logical AND
             0x29 => Instruction::new(2, CPU::and, CPU::immediate),
             0x25 => Instruction::new(3, CPU::and, CPU::zero_page),
             0x35 => Instruction::new(4, CPU::and, CPU::zero_page_x),
@@ -68,14 +68,14 @@ impl CPU {
             // Branch if Positive
             0x10 => Instruction::new(2, CPU::bpl, CPU::immediate),
 
+            // Break
+            0x00 => Instruction::new(2, CPU::brk, CPU::implied),
+
             // Branch if Overflow Clear
             0x50 => Instruction::new(2, CPU::bvc, CPU::immediate),
 
             // Branch if Overflow Set
             0x70 => Instruction::new(2, CPU::bvs, CPU::immediate),
-
-            // Break
-            0x00 => Instruction::new(2, CPU::brk, CPU::implied),
 
             // Clear Carry Flag
             0x18 => Instruction::new(2, CPU::clc, CPU::implied),
@@ -147,6 +147,9 @@ impl CPU {
             0x4C => Instruction::new(3, CPU::jmp, CPU::absolute),
             0x6C => Instruction::new(5, CPU::jmp, CPU::indirect),
 
+            // Jump to Subroutine
+            0x20 => Instruction::new(6, CPU::jsr, CPU::absolute),
+
             // Load accumulator
             0xA9 => Instruction::new(2, CPU::lda, CPU::immediate),
             0xA5 => Instruction::new(3, CPU::lda, CPU::zero_page),
@@ -216,6 +219,9 @@ impl CPU {
             0x76 => Instruction::new(6, CPU::ror, CPU::zero_page_x),
             0x6E => Instruction::new(6, CPU::ror, CPU::absolute),
             0x7E => Instruction::new(7, CPU::ror, CPU::absolute_x),
+
+            // Return from Subroutine
+            0x60 => Instruction::new(6, CPU::rts, CPU::implied),
 
             // Subtract with Carry
             0xE9 => Instruction::new(2, CPU::sbc, CPU::immediate),
@@ -489,6 +495,11 @@ impl CPU {
         self.registers.pc = self.addressed;
     }
 
+    fn jsr(&mut self) {
+        self.push_word(self.registers.pc - 1);
+        self.registers.pc = self.addressed;
+    }
+
     fn lda(&mut self) {
         let value = self.mode();
 
@@ -605,6 +616,10 @@ impl CPU {
         self.update_negative_flag(result);
     }
 
+    fn rts(&mut self) {
+        self.registers.pc = self.pull_word() + 1;
+    }
+
     fn sbc(&mut self) {
         let a = self.registers.a as u16;
         let m = self.mode() as u16 ^ 0xFF;
@@ -680,24 +695,6 @@ impl CPU {
 
         self.update_zero_flag(value);
         self.update_negative_flag(value);
-    }
-
-    #[inline]
-    fn branch(&mut self) {
-        let offset = self.mode() as i8;
-        self.registers.pc = self.registers.pc.wrapping_add(offset as u16);
-    }
-
-    #[inline]
-    fn push(&mut self, value: u8) {
-        self.write(0x0100 + self.registers.sp as u16, value);
-        self.registers.sp = self.registers.sp.wrapping_sub(1);
-    }
-
-    #[inline]
-    fn pull(&mut self) -> u8 {
-        self.registers.sp = self.registers.sp.wrapping_add(1);
-        self.read(0x0100 + self.registers.sp as u16)
     }
 
     #[inline]
