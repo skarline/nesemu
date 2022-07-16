@@ -68,7 +68,7 @@ impl CPU {
             // Branch if Positive
             0x10 => Instruction::new(2, CPU::bpl, CPU::immediate),
 
-            // Break
+            // Force Interrupt
             0x00 => Instruction::new(2, CPU::brk, CPU::implied),
 
             // Branch if Overflow Clear
@@ -220,6 +220,9 @@ impl CPU {
             0x6E => Instruction::new(6, CPU::ror, CPU::absolute),
             0x7E => Instruction::new(7, CPU::ror, CPU::absolute_x),
 
+            // Return from Interrupt
+            0x40 => Instruction::new(6, CPU::rti, CPU::implied),
+
             // Return from Subroutine
             0x60 => Instruction::new(6, CPU::rts, CPU::implied),
 
@@ -267,8 +270,14 @@ impl CPU {
             // Transfer accumulator to Y
             0x8A => Instruction::new(2, CPU::tay, CPU::implied),
 
+            // Transfer Stack Pointer to X
+            0xBA => Instruction::new(2, CPU::tsx, CPU::implied),
+
             // Transfer X to accumulator
             0xA8 => Instruction::new(2, CPU::txa, CPU::implied),
+
+            // Transfer X to Stack Pointer
+            0x9A => Instruction::new(2, CPU::txs, CPU::implied),
 
             // Transfer Y to accumulator
             0x98 => Instruction::new(2, CPU::tya, CPU::implied),
@@ -616,6 +625,14 @@ impl CPU {
         self.update_negative_flag(result);
     }
 
+    fn rti(&mut self) {
+        self.status.bits = self.pull();
+        self.status.remove(StatusFlags::BREAK);
+        self.status.remove(StatusFlags::UNUSED);
+
+        self.registers.pc = self.pull_word();
+    }
+
     fn rts(&mut self) {
         self.registers.pc = self.pull_word() + 1;
     }
@@ -679,6 +696,15 @@ impl CPU {
         self.update_negative_flag(value);
     }
 
+    fn tsx(&mut self) {
+        let value = self.registers.sp;
+
+        self.registers.x = value;
+
+        self.update_zero_flag(value);
+        self.update_negative_flag(value);
+    }
+
     fn txa(&mut self) {
         let value = self.registers.x;
 
@@ -686,6 +712,10 @@ impl CPU {
 
         self.update_zero_flag(value);
         self.update_negative_flag(value);
+    }
+
+    fn txs(&mut self) {
+        self.registers.sp = self.registers.x;
     }
 
     fn tya(&mut self) {

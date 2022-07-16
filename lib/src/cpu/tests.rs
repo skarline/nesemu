@@ -689,6 +689,15 @@ fn test_tay() {
 }
 
 #[test]
+fn test_tsx() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xBA, // TXS
+    ]);
+    assert_eq!(cpu.registers.x, 0xFD);
+}
+
+#[test]
 fn test_txa() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![
@@ -698,6 +707,16 @@ fn test_txa() {
         0xA8, // TXA
     ]);
     assert_eq!(cpu.registers.a, 0x42);
+}
+
+#[test]
+fn test_txs() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA2, 0x10, // LDA #$10
+        0x9A, // TXS
+    ]);
+    assert_eq!(cpu.registers.sp, 0x10);
 }
 
 #[test]
