@@ -191,6 +191,18 @@ impl CPU {
             0x01 => Instruction::new(6, CPU::ora, CPU::indirect_x),
             0x11 => Instruction::new(5, CPU::ora, CPU::indirect_y),
 
+            // Push Accumulator
+            0x48 => Instruction::new(3, CPU::pha, CPU::implied),
+
+            // Push Processor Status
+            0x08 => Instruction::new(3, CPU::php, CPU::implied),
+
+            // Pull Accumulator
+            0x68 => Instruction::new(4, CPU::pla, CPU::implied),
+
+            // Pull Processor Status
+            0x28 => Instruction::new(4, CPU::plp, CPU::implied),
+
             // Rotate Left
             0x2A => Instruction::new(2, CPU::rol, CPU::implied),
             0x26 => Instruction::new(5, CPU::rol, CPU::zero_page),
@@ -535,6 +547,30 @@ impl CPU {
         self.update_negative_flag(value);
     }
 
+    fn pha(&mut self) {
+        self.push(self.registers.a);
+    }
+
+    fn php(&mut self) {
+        self.push(self.status.bits());
+
+        self.status.insert(StatusFlags::BREAK);
+        self.status.insert(StatusFlags::UNUSED);
+    }
+
+    fn pla(&mut self) {
+        let value = self.pull();
+
+        self.registers.a = value;
+
+        self.update_zero_flag(value);
+        self.update_negative_flag(value);
+    }
+
+    fn plp(&mut self) {
+        self.status.bits = self.pull();
+    }
+
     fn rol(&mut self) {
         let value = self.mode();
 
@@ -650,6 +686,18 @@ impl CPU {
     fn branch(&mut self) {
         let offset = self.mode() as i8;
         self.registers.pc = self.registers.pc.wrapping_add(offset as u16);
+    }
+
+    #[inline]
+    fn push(&mut self, value: u8) {
+        self.write(0x0100 + self.registers.sp as u16, value);
+        self.registers.sp = self.registers.sp.wrapping_sub(1);
+    }
+
+    #[inline]
+    fn pull(&mut self) -> u8 {
+        self.registers.sp = self.registers.sp.wrapping_add(1);
+        self.read(0x0100 + self.registers.sp as u16)
     }
 
     #[inline]

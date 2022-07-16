@@ -492,6 +492,50 @@ fn test_ora() {
 }
 
 #[test]
+fn test_pha() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x80, // LDA #$80
+        0x48, // PHA
+    ]);
+    assert_eq!(cpu.read(0x0100), 0x80);
+}
+
+#[test]
+fn test_php() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0x08, // PHP
+    ]);
+    assert_eq!(cpu.read(0x0100), 0b0010_0100);
+}
+
+#[test]
+fn test_pla() {
+    let mut cpu = CPU::new();
+    cpu.write(0x0100, 0x80);
+    cpu.load_and_run(vec![
+        0xA9, 0x80, // LDA #$80
+        0x48, // PHA
+        0xA9, 0x00, // LDA #$00
+        0x68, // PLA
+    ]);
+    assert_eq!(cpu.registers.a, 0x80);
+}
+
+#[test]
+fn test_plp() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0x38, // SEC
+        0x08, // PHP
+        0x18, // CLI
+        0x28, // PLP
+    ]);
+    assert!(cpu.status.contains(StatusFlags::CARRY));
+}
+
+#[test]
 fn test_rol() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![
