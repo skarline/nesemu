@@ -191,6 +191,27 @@ fn test_beq() {
 }
 
 #[test]
+fn test_bit_zero() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9, 0x80, // LDA #$80
+        0x24, 0x10, // BIT $10
+    ]);
+    assert!(cpu.status.contains(StatusFlags::ZERO));
+}
+
+#[test]
+fn test_bit_negative() {
+    let mut cpu = CPU::new();
+    cpu.write(0x10, 0xFF);
+    cpu.load_and_run(vec![
+        0xA9, 0xFF, // LDA #$FF
+        0x24, 0x10, // BIT $10
+    ]);
+    assert!(cpu.status.contains(StatusFlags::NEGATIVE));
+}
+
+#[test]
 fn test_bmi() {
     let mut cpu = CPU::new();
     cpu.load_and_run(vec![
@@ -468,6 +489,28 @@ fn test_ora() {
         0b0000_1111, // #%11110000
     ]);
     assert_eq!(cpu.registers.a, 0b1100_1111);
+}
+
+#[test]
+fn test_rol() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9,        // LDA
+        0b1100_1100, // #%11001100
+        0x2A,        // ROL
+    ]);
+    assert_eq!(cpu.registers.a, 0b1001_1001);
+}
+
+#[test]
+fn test_ror() {
+    let mut cpu = CPU::new();
+    cpu.load_and_run(vec![
+        0xA9,        // LDA
+        0b1100_1100, // #%11001100
+        0x6A,        // ROR
+    ]);
+    assert_eq!(cpu.registers.a, 0b0110_0110);
 }
 
 #[test]

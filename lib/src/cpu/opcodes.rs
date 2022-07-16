@@ -55,6 +55,10 @@ impl CPU {
             // Branch if Equal
             0xF0 => Instruction::new(2, CPU::beq, CPU::immediate),
 
+            // Bit Test
+            0x24 => Instruction::new(3, CPU::bit, CPU::zero_page),
+            0x2C => Instruction::new(4, CPU::bit, CPU::absolute),
+
             // Branch if Minus
             0x30 => Instruction::new(2, CPU::bmi, CPU::immediate),
 
@@ -187,6 +191,20 @@ impl CPU {
             0x01 => Instruction::new(6, CPU::ora, CPU::indirect_x),
             0x11 => Instruction::new(5, CPU::ora, CPU::indirect_y),
 
+            // Rotate Left
+            0x2A => Instruction::new(2, CPU::rol, CPU::implied),
+            0x26 => Instruction::new(5, CPU::rol, CPU::zero_page),
+            0x36 => Instruction::new(6, CPU::rol, CPU::zero_page_x),
+            0x2E => Instruction::new(6, CPU::rol, CPU::absolute),
+            0x3E => Instruction::new(7, CPU::rol, CPU::absolute_x),
+
+            // Rotate Right
+            0x6A => Instruction::new(2, CPU::ror, CPU::implied),
+            0x66 => Instruction::new(5, CPU::ror, CPU::zero_page),
+            0x76 => Instruction::new(6, CPU::ror, CPU::zero_page_x),
+            0x6E => Instruction::new(6, CPU::ror, CPU::absolute),
+            0x7E => Instruction::new(7, CPU::ror, CPU::absolute_x),
+
             // Subtract with Carry
             0xE9 => Instruction::new(2, CPU::sbc, CPU::immediate),
             0xE5 => Instruction::new(3, CPU::sbc, CPU::zero_page),
@@ -252,10 +270,10 @@ impl CPU {
 
         self.registers.a = value;
 
-        self.update_carry_flag(result > 0xFF);
+        self.set_carry_flag(result > 0xFF);
+        self.set_overflow_flag(overflow);
         self.update_zero_flag(value);
         self.update_negative_flag(value);
-        self.update_overflow_flag(overflow);
     }
 
     fn and(&mut self) {
@@ -271,7 +289,7 @@ impl CPU {
         let result = (self.mode() as u16) << 1;
         let value = result as u8;
 
-        self.update_carry_flag(result > 0xFF);
+        self.set_carry_flag(result > 0xFF);
         self.update_zero_flag(value);
         self.update_negative_flag(value);
 
@@ -298,6 +316,15 @@ impl CPU {
         if self.status.contains(StatusFlags::ZERO) {
             self.branch();
         }
+    }
+
+    fn bit(&mut self) {
+        let value = self.mode();
+        let result = self.registers.a & value;
+
+        self.update_zero_flag(result);
+        self.update_negative_flag(value);
+        self.set_overflow_flag(value & 0x40 != 0);
     }
 
     fn bmi(&mut self) {
@@ -356,7 +383,7 @@ impl CPU {
 
         let value = a.wrapping_sub(m);
 
-        self.update_carry_flag(a >= m);
+        self.set_carry_flag(a >= m);
         self.update_zero_flag(value);
         self.update_negative_flag(value);
     }
@@ -367,7 +394,7 @@ impl CPU {
 
         let value = x.wrapping_sub(m);
 
-        self.update_carry_flag(x >= m);
+        self.set_carry_flag(x >= m);
         self.update_zero_flag(value);
         self.update_negative_flag(value);
     }
@@ -378,7 +405,7 @@ impl CPU {
 
         let value = y.wrapping_sub(m);
 
-        self.update_carry_flag(y >= m);
+        self.set_carry_flag(y >= m);
         self.update_zero_flag(value);
         self.update_negative_flag(value);
     }
@@ -480,7 +507,7 @@ impl CPU {
     fn lsr(&mut self) {
         let m = self.mode();
 
-        self.update_carry_flag(m & 0x01 != 0);
+        self.set_carry_flag(m & 0x01 != 0);
 
         let result = (m as u16) >> 1;
         let value = result as u8;
@@ -508,6 +535,40 @@ impl CPU {
         self.update_negative_flag(value);
     }
 
+    fn rol(&mut self) {
+        let value = self.mode();
+
+        let carry = value & 0x80 != 0;
+        let result = value.rotate_left(1) | self.status.contains(StatusFlags::CARRY) as u8;
+
+        if self.implied {
+            self.registers.a = result;
+        } else {
+            self.write(self.addressed, result);
+        }
+
+        self.set_carry_flag(carry);
+        self.update_zero_flag(result);
+        self.update_negative_flag(result);
+    }
+
+    fn ror(&mut self) {
+        let value = self.mode();
+
+        let carry = value & 0x01 != 0;
+        let result = value.rotate_right(1) | self.status.contains(StatusFlags::CARRY) as u8;
+
+        if self.implied {
+            self.registers.a = result;
+        } else {
+            self.write(self.addressed, result);
+        }
+
+        self.set_carry_flag(carry);
+        self.update_zero_flag(result);
+        self.update_negative_flag(result);
+    }
+
     fn sbc(&mut self) {
         let a = self.registers.a as u16;
         let m = self.mode() as u16 ^ 0xFF;
@@ -519,10 +580,10 @@ impl CPU {
 
         self.registers.a = value;
 
-        self.update_carry_flag(result > 0xFF);
+        self.set_carry_flag(result > 0xFF);
+        self.set_overflow_flag(overflow);
         self.update_zero_flag(value);
         self.update_negative_flag(value);
-        self.update_overflow_flag(overflow);
     }
 
     fn sec(&mut self) {
@@ -592,11 +653,6 @@ impl CPU {
     }
 
     #[inline]
-    fn update_carry_flag(&mut self, value: bool) {
-        self.status.set(StatusFlags::CARRY, value);
-    }
-
-    #[inline]
     fn update_zero_flag(&mut self, value: u8) {
         self.status.set(StatusFlags::ZERO, value == 0);
     }
@@ -607,7 +663,12 @@ impl CPU {
     }
 
     #[inline]
-    fn update_overflow_flag(&mut self, value: bool) {
+    fn set_carry_flag(&mut self, value: bool) {
+        self.status.set(StatusFlags::CARRY, value);
+    }
+
+    #[inline]
+    fn set_overflow_flag(&mut self, value: bool) {
         self.status.set(StatusFlags::OVERFLOW, value);
     }
 }
